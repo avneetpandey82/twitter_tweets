@@ -1,75 +1,41 @@
 package main
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 
-	"github.com/joho/godotenv"
-	"golang.org/x/oauth2/clientcredentials"
+	"github.com/dghubble/oauth1"
 )
 
-type TweetResponse struct {
-	Data struct {
-		ID   string `json:"id"`
-		Text string `json:"text"`
-	} `json:"data"`
-}
-
-func OAuth() *http.Client {
-	config := clientcredentials.Config{
-		ClientID:     os.Getenv("TWITTER_CLIENT_ID"),
-		ClientSecret: os.Getenv("TWITTER_CLIENT_SECRET"),
-		TokenURL:     "https://api.twitter.com/oauth2/token",
-	}
-	return config.Client(context.Background())
-}
-
-var baseUrl = `https://api.x.com/2`
-
-func createPost(text string) {
-	client := OAuth()
-	tweetData := map[string]string{
-		"text": text,
-	}
-	body, err := json.Marshal(tweetData)
+func postTweet(client *http.Client, tweet string) {
+	urlStr := "https://api.twitter.com/2/tweets"
+	payload := url.Values{}
+	payload.Set("status", tweet)
+	res, err := client.PostForm(urlStr, payload)
 	if err != nil {
-		log.Fatal("Error marshaling tweet data: %v", err)
-	}
-	req, err := http.NewRequest("POST", baseUrl+`/tweets`, bytes.NewBuffer(body))
-	if err != nil {
-		log.Fatal("Error creating request: %v", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+os.Getenv("TWITTER_BEARER_TOKEN"))
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := client.Do(req)
-	if err != nil {
-		log.Fatal("Error making Post request: %v", err)
+		log.Fatalf("Error posting tweet: %v", err)
 	}
 	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusCreated {
-		log.Fatal("Error creating tweet: %v", res.StatusCode)
+	fmt.Println("Response Status: ", res.StatusCode)
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatalf("Error reading response: %v", err)
 	}
-	var tweetResponse TweetResponse
-	if err := json.NewDecoder(res.Body).Decode(&tweetResponse); err != nil {
-		log.Fatalf("Error decoding response: %v", err)
-	}
-
-	fmt.Printf("Tweet created: %v (ID: %v)\n", tweetResponse.Data.Text, tweetResponse.Data.ID)
-
+	fmt.Println("Tweet posted successfully: ", string(body))
 }
 
 func main() {
-	err := godotenv.Load()
-	createPost("Hello! How are you?")
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
+	consumerKey := os.Getenv("TWITTER_API_KEY")
+	consumerSecret := os.Getenv("TWITTER_API_SECRET")
+	accessToken := os.Getenv("TWITTER_ACCESS_TOKEN")
+	accessSecret := os.Getenv("TWITTER_ACCESS_SECRET")
 
+	config := oauth1.NewConfig(consumerKey, consumerSecret)
+	token := oauth1.NewToken(accessToken, accessSecret)
+	httpClient := config.Client(oauth1.NoContext, token)
+	postTweet(httpClient, "Avneet is Here!!")
 }
