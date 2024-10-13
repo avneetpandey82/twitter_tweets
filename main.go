@@ -14,8 +14,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dghubble/go-twitter/twitter"
-	"github.com/dghubble/oauth1"
 	"github.com/joho/godotenv"
 )
 
@@ -40,6 +38,7 @@ func postTweet(tweet string) {
 	consumerSecret := os.Getenv("TWITTER_API_SECRET")
 	accessToken := os.Getenv("TWITTER_ACCESS_TOKEN")
 	accessSecret := os.Getenv("TWITTER_ACCESS_SECRET")
+
 	oauthNonce := generateNonce()
 	oauthTimeStamp := strconv.FormatInt(time.Now().Unix(), 10)
 
@@ -60,7 +59,7 @@ func postTweet(tweet string) {
 	signingKey := percentEncode(consumerSecret) + "&" + percentEncode(accessSecret)
 
 	oauthSignature := generateSignature(baseStr, signingKey)
-	authHeader := fmt.Sprintf(`OAuth oauth_consumer_key="%s", oauth_nonce="%s", oauth_signature="%s", oauth_signature_method="HMAC-SHA1", oauth_timestamp="%s", oauth_token="%s", oauth_version="1.0"`,
+	authHeader := fmt.Sprintf(`OAuth oauth_consumer_key="%s", oauth_nonce="%s", oauth_signature="%s", oauth_signature_method="HMAC-SHA1",oauth_timestamp="%s", oauth_token="%s", oauth_version="1.0"`,
 		percentEncode(consumerKey), percentEncode(oauthNonce), percentEncode(oauthSignature), percentEncode(oauthTimeStamp), percentEncode(accessToken))
 
 	println(authHeader)
@@ -74,8 +73,6 @@ func postTweet(tweet string) {
 	}
 	req.Header.Add("Authorization", authHeader)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
-	req.Header.Add("Host", "api.x.com")
 
 	res, err := client.Do(req)
 	if err != nil {
@@ -94,26 +91,5 @@ func postTweet(tweet string) {
 
 func main() {
 	godotenv.Load()
-
-	consumerKey := os.Getenv("TWITTER_API_KEY")
-	consumerSecret := os.Getenv("TWITTER_API_SECRET")
-	accessToken := os.Getenv("TWITTER_ACCESS_TOKEN")
-	accessTokenSecret := os.Getenv("TWITTER_ACCESS_SECRET")
-	println(consumerKey, consumerSecret, accessToken, accessTokenSecret)
-	config := oauth1.NewConfig(consumerKey, consumerSecret)
-	token := oauth1.NewToken(accessToken, accessTokenSecret)
-
-	httpClient := config.Client(oauth1.NoContext, token)
-	client := twitter.NewClient(httpClient)
-
-	user, _, err := client.Accounts.VerifyCredentials(&twitter.AccountVerifyParams{})
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-	}
-	fmt.Printf("Account: @%s (%s)\n", user.ScreenName, user.Name)
-	_, _, err = client.Statuses.Update("New project is coming soon - stay tuned!", nil)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-	}
-	fmt.Println("Twitted successfully")
+	postTweet("Avneet is Here!!")
 }
